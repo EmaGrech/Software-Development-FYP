@@ -26,6 +26,7 @@ def processing(dataset):
     ##IMAGES##
     colour = ay.colourExtraction(image)
     face = ay.facialExtraction(image)
+    obj = ay.objectExtraction(image)
 
     ##DEBUGGING##
     print(f"Tokens: {words}")
@@ -35,6 +36,7 @@ def processing(dataset):
     print(f"Caption Sentiment: {tokenSenti}")
     print(f"Colour: {colour}")
     print(f"Emotions: {face}")
+    print(f"Objects: {obj}")
 
 ##RUNNING##
 if __name__ == "__main__":
