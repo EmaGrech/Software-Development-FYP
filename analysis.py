@@ -197,6 +197,7 @@ def objectExtraction(image):
 
     detected = [
         int(label) for label, score in zip(labels, scores)
+        #Removing detected objects with low confidence
         if score > 0.95
     ]
     
