@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import pandas as pd
 import torch 
+import torchvision
 import string, emoji, nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -10,14 +11,23 @@ from nltk.corpus import sentiwordnet as swn
 from nltk.stem import PorterStemmer
 from collections import Counter
 from keras.models import load_model
+from torchvision.transforms import functional as F
 from PIL import Image
 
-
 ##FETCHING NECESSARY DATA##
-emojiScores = pd.read_csv("C:/Users/emagr/Documents/School/Y3S2/FYP/emoji/Emoji_Sentiment_Data_v1.0.csv") 
+emojiScores = pd.read_csv('C:/Users/emagr/Documents/School/Y3S2/FYP/emoji/Emoji_Sentiment_Data_v1.0.csv') 
 facialEmotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
-facialDetecionModel = load_model("C:/Users/emagr/Documents/School/Y3S2/FYP/FER_model.h5")
+objectList = {1:"person", 2:"bicycle", 3:"car", 4:"motorcycle", 5:"airplane", 6:"bus", 7:"train", 8:"truck", 9:"boat", 10:"traffic light", 11:"fire hydrant", 
+12:"stop sign", 13:"parking meter", 14:"bench", 15:"bird", 16:"cat", 17:"dog", 18:"horse", 19:"sheep", 20:"cow", 21:"elephant", 22:"bear", 23:"zebra", 24:"giraffe", 
+25:"backpack", 26:"umbrella", 27:"handbag", 28:"tie", 29:"suitcase", 30:"frisbee", 31:"skis", 32:"snowboard", 33:"sports ball", 34:"kite", 35:"baseball bat", 
+36:"baseball glove", 37:"skateboard", 38:"surfboard", 39:"tennis racket", 40:"bottle", 41:"wine glass", 42:"cup", 43:"fork", 44:"knife", 45:"spoon", 46:"bowl", 
+47:"banana", 48:"apple", 49:"sandwich", 50:"orange", 51:"broccoli", 52:"carrot", 53:"hot dog", 54:"pizza", 55:"donut", 56:"cake", 57:"chair", 58:"couch", 59:"potted plant", 
+60: "bed", 61:"dining table", 62:"toilet", 63:"tv", 64:"laptop", 65:"mouse", 66:"remote", 67:"keyboard", 68:"cell phone", 69:"microwave", 70:"oven", 71:"toaster", 
+72:"sink", 73:"refrigerator", 74:"book", 75:"clock", 76:"vase", 77:"scissors",78: "teddy bear", 79:"hair drier", 80:"toothbrush"}
+facialDetecionModel = load_model('C:/Users/emagr/Documents/School/Y3S2/FYP/FER_model.h5')
+objectDetecionModel = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 
+##WORDS#############################################
 ##TOKENISATION##
 def tokenize (sentence):
     tokens = word_tokenize(sentence)
@@ -33,7 +43,7 @@ def clean(tokens):
     emoji_chars = set(emoji.EMOJI_DATA)
     
     for token in tokens:
-        newToken = ""
+        newToken = ''
         i = 0
         
         while i < len(token):
@@ -120,6 +130,7 @@ def tokenSentiment(tokens):
     else:
         return 0
 
+##IMAGES#############################################
 ##COLOUR EXTRACTION##
 def colourExtraction(image, bins=(8,8,8)):
     image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -141,7 +152,7 @@ def facialExtraction(image):
     faces = cascade.detectMultiScale(converted, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
     #Default if no face is found
     if len(faces) == 0:
-        return "No face detected / face obscured"
+        return 'No face detected / face obscured'
 
     #Detecting emotions
     detected = []
@@ -158,5 +169,40 @@ def facialExtraction(image):
         predicted = facialEmotions[np.argmax(prob)]
         
         detected.append(predicted)
+
+    return detected
+
+def objectExtraction(image):
+    threshold = 0.5
+    objectDetecionModel.eval()
+
+    #Converting image for model to be able to analyse
+    if isinstance(image, np.ndarray):
+        rgb = Image.fromarray(image.astype('uint8'), 'RGB')
+    else:
+        # If the image is a file path, open it
+        rgb = Image.open(image).convert('RGB')
+    tensorImage = F.to_tensor(rgb).unsqueeze(0)
+
+    #Detecting objects
+    with torch.no_grad():
+        objs = objectDetecionModel(tensorImage)
+        #Default if no object is found
+        
+    if len(objs) == 0:
+        return 'No face detected / face obscured'
+  
+    labels = objs[0]['labels'].cpu().numpy()  
+    scores = objs[0]['scores'].cpu().numpy()
+
+    detected = [
+        int(label) for label, score in zip(labels, scores)
+        if score > 0.95
+    ]
+    
+    detected = [objectList.get(label) for label in detected]
+
+    print("Labels:", labels)
+    print("Scores:", scores)
 
     return detected
