@@ -27,7 +27,7 @@ def clean(tokens):
     stopWords = set(stopwords.words('english'))
     stemmer = PorterStemmer()
     
-    emoji_chars = set(emoji.emojiList.keys())
+    emoji_chars = set(emoji.EMOJI_DATA)
     
     for token in tokens:
         newToken = ""
@@ -116,3 +116,13 @@ def tokenSentiment(tokens):
         return average
     else:
         return 0
+
+##COLOUR EXTRACTION##
+def colourExtraction(image, bins=(8,8,8)):
+    image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    #compute and normalising color histogram
+    hist = cv2.calcHist([image_bgr], [0, 1, 2], None, bins, [0, 256, 0, 256, 0, 256])
+    hist = cv2.normalize(hist, hist).flatten()
+
+    return hist
