@@ -12,8 +12,11 @@ from collections import Counter
 from keras.models import load_model
 from PIL import Image
 
+
 ##FETCHING NECESSARY DATA##
-emojiScores = pd.read_csv("C:/Users/emagr/Documents/School/Y3S2/FYP/emoji/Emoji_Sentiment_Data_v1.0.csv")
+emojiScores = pd.read_csv("C:/Users/emagr/Documents/School/Y3S2/FYP/emoji/Emoji_Sentiment_Data_v1.0.csv") 
+facialEmotions = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+facialDetecionModel = load_model("C:/Users/emagr/Documents/School/Y3S2/FYP/FER_model.h5")
 
 ##TOKENISATION##
 def tokenize (sentence):
@@ -121,8 +124,39 @@ def tokenSentiment(tokens):
 def colourExtraction(image, bins=(8,8,8)):
     image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-    #compute and normalising color histogram
+    #computing and normalising color histogram
     hist = cv2.calcHist([image_bgr], [0, 1, 2], None, bins, [0, 256, 0, 256, 0, 256])
     hist = cv2.normalize(hist, hist).flatten()
 
     return hist
+
+##FACIAL EXTRACTION##
+def facialExtraction(image):
+    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    #Converting to greyscale
+    converted = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    #Detecting faces
+    faces = cascade.detectMultiScale(converted, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    #Default if no face is found
+    if len(faces) == 0:
+        return "No face detected / face obscured"
+
+    #Detecting emotions
+    detected = []
+    for (x, y, w, h) in faces:
+        
+        #Assigning Region Of Interest (ROI)
+        roi = converted[y:y+h, x:x+w]
+        roiResized = cv2.resize(roi, (48, 48))
+        roiNormalized = roiResized / 255.0
+        roiInput = np.reshape(roiNormalized, (1, 48, 48, 1))
+
+        #Detecting emotions
+        prob = facialDetecionModel.predict(roiInput)
+        predicted = facialEmotions[np.argmax(prob)]
+        
+        detected.append(predicted)
+
+    return detected
