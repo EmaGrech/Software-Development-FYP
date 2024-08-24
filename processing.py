@@ -8,12 +8,10 @@ import analysis as ay
 
 ##FETCHING##
 dataset = pd.read_excel("C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx", sheet_name="Anxiety")
-row_index = 0
-row = dataset.iloc[row_index]
 
 ##PROCESSING##
-def processing(dataset):
-    
+def processing(row):
+ 
     caption = row['Caption']
     image = cv2.imread(row['Image Reference'])
 
@@ -40,4 +38,6 @@ def processing(dataset):
 
 ##RUNNING##
 if __name__ == "__main__":
-    processing(dataset)
+    for index, row in dataset.iterrows():
+        print(f"\nProcessing row {index+1}/{len(dataset)}")
+        processing(row)
