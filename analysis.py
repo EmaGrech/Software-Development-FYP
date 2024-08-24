@@ -30,8 +30,13 @@ objectDetecionModel = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretr
 ##WORDS#############################################
 ##TOKENISATION##
 def tokenize (sentence):
-    tokens = word_tokenize(sentence)
-    return tokens
+    #Checking if the input is string (if it isnt it is empty)
+    if pd.isna(sentence) or not isinstance(sentence, str):
+        sentence = ""
+        return sentence
+    else:
+        tokens = word_tokenize(sentence)
+        return tokens
 
 ##CLEANING##
 def clean(tokens):
@@ -82,22 +87,25 @@ def clean(tokens):
 def emojiSentiment(emojis):
     total = 0
 
-    for emoji in emojis:
-        #Converting emojis to HEX
-        codepoint = hex(ord(emoji))
-        emojiList = emojiScores[emojiScores['Unicode codepoint'] == codepoint]
-        
-        if not emojiList.empty:
-            #Fetching data from csv
-            positives = emojiList.iloc[0]['Positive']
-            occurrences = emojiList.iloc[0]['Occurrences']
+    if emojis:
+        for emoji in emojis:
+            #Converting emojis to HEX
+            codepoint = hex(ord(emoji))
+            emojiList = emojiScores[emojiScores['Unicode codepoint'] == codepoint]
             
-            if occurrences > 0:
-                #Calculating how many of the occurrances were positive from the data  
-                sentiment = positives / occurrences
-            else:
-                sentiment = 0  
-            total += sentiment
+            if not emojiList.empty:
+                #Fetching data from csv
+                positives = emojiList.iloc[0]['Positive']
+                occurrences = emojiList.iloc[0]['Occurrences']
+                
+                if occurrences > 0:
+                    #Calculating how many of the occurrances were positive from the data  
+                    sentiment = positives / occurrences
+                else:
+                    sentiment = 0  
+                total += sentiment
+    else:
+        return "No emojis used"
 
     #Averaging     
     total = round(total/len(emojis), 4)
