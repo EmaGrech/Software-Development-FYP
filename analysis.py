@@ -5,7 +5,7 @@ import pandas as pd
 import torch 
 import torchvision
 import string, emoji, nltk
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import TweetTokenizer
 from nltk.corpus import stopwords
 from nltk.corpus import sentiwordnet as swn
 from nltk.stem import PorterStemmer
@@ -30,12 +30,13 @@ objectDetecionModel = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretr
 ##WORDS#############################################
 ##TOKENISATION##
 def tokenize (sentence):
-    #Checking if the input is string (if it isnt it is empty)
+    #Checking if the input is string (if it isn't, it is empty)
     if pd.isna(sentence) or not isinstance(sentence, str):
         sentence = ""
         return sentence
     else:
-        tokens = word_tokenize(sentence)
+        tokenizer = TweetTokenizer(preserve_case=False, reduce_len=True, strip_handles=True)
+        tokens = tokenizer.tokenize(sentence)
         return tokens
 
 ##CLEANING##
@@ -45,7 +46,7 @@ def clean(tokens):
     stopWords = set(stopwords.words('english'))
     stemmer = PorterStemmer()
     
-    emoji_chars = set(emoji.EMOJI_DATA)
+    emojiChars = set(emoji.EMOJI_DATA)
     
     for token in tokens:
         newToken = ''
@@ -55,7 +56,7 @@ def clean(tokens):
             char = token[i]
             
             #Checking if emoji
-            if char in emoji_chars:
+            if char in emojiChars:
                 emojis.append(char)
                 i += 1
                 
@@ -67,7 +68,7 @@ def clean(tokens):
                 i += 1
         
         #Processing tokens
-        words = newToken.split()
+        words = newToken.replace("’", "'").replace("'", "").split() #There was an issue with apostrophes
         for word in words:
             #Remove numbers, stop words, and empty strings
             if word and not any(char.isdigit() for char in word) and word.lower() not in stopWords:
@@ -78,7 +79,7 @@ def clean(tokens):
                 #Applying stemming
                 word = stemmer.stem(word)
 
-                if word and word not in emoji_chars: 
+                if word and word not in emojiChars: 
                     cleaned.append(word)
 
     return cleaned, emojis
@@ -138,6 +139,38 @@ def tokenSentiment(tokens):
     else:
         return 0
 
+##TOKEN FREQUENCY##
+def tokenFrequency(allTokens):
+    newList = [token for sublist in allTokens for token in sublist]
+    count = Counter(newList)
+    
+    #Calculating frequency
+    freq = {token: count / len(allTokens) for token, count in count.items()}
+    
+    #Picking top 5
+    top = dict(sorted(freq.items(), key=lambda item: item[1],reverse=True)[:5])
+
+    return top
+
+##N-GRAM FREQUENCY##
+def nGramFrequency(allTokens):
+    count = Counter()
+    
+    for tokens in allTokens:
+        #Creating possible combinations
+        nGrams = [' '.join(tokens[i:i+2]) for i in range(len(tokens) - 2 + 1)]
+        count.update(nGrams)
+
+    #Calculating frequency
+    total = sum(count.values())
+    freq = {ngram: occur / total for ngram, occur in count.items()}
+    
+    #Picking top 5
+    top = dict(sorted(freq.items(), key=lambda item: item[1],reverse=True)[:5])
+
+    return top
+
+
 ##IMAGES#############################################
 ##COLOUR EXTRACTION##
 def colourExtraction(image, bins=(8,8,8)):
@@ -151,6 +184,7 @@ def colourExtraction(image, bins=(8,8,8)):
 
 ##FACIAL EXTRACTION##
 def facialExtraction(image):
+    threshold = 0.5
     cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
     #Converting to greyscale
@@ -176,12 +210,13 @@ def facialExtraction(image):
         prob = facialDetecionModel.predict(roiInput)
         predicted = facialEmotions[np.argmax(prob)]
         
-        detected.append(predicted)
+        if np.max(prob) > threshold:
+            detected.append(predicted)
 
     return detected
 
 def objectExtraction(image):
-    threshold = 0.5
+    threshold = 0.95
     objectDetecionModel.eval()
 
     #Converting image for model to be able to analyse
@@ -206,12 +241,12 @@ def objectExtraction(image):
     detected = [
         int(label) for label, score in zip(labels, scores)
         #Removing detected objects with low confidence
-        if score > 0.95
+        if score > threshold
     ]
     
     detected = [objectList.get(label) for label in detected]
 
-    print("Labels:", labels)
-    print("Scores:", scores)
+    #print("Labels:", labels)
+    #print("Scores:", scores)
 
     return detected
