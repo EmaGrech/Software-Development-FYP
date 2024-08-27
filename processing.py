@@ -1,14 +1,16 @@
 import cv2
-import sys
 import numpy as np
 import pandas as pd
+from openpyxl import load_workbook
 from PIL import Image
 from collections import Counter
 
 import analysis as ay
 
 ##FETCHING##
-dataset = pd.read_excel("C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx", sheet_name="Anxiety")
+filePath = "C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx"
+dataset = pd.read_excel(filePath, sheet_name="Anxiety")
+workbook = load_workbook(filePath)
 
 ##PROCESSING##
 def processing(row):
@@ -27,8 +29,6 @@ def processing(row):
         allTokens.clear
 
         for index, row in dataset.iterrows():
-            if index >= 5:  
-                break
             
             print(f"\nProcessing row {index+1}/{len(dataset)}")
             caption = row['Caption']
@@ -57,10 +57,10 @@ def processing(row):
             faceList.append(face)
 
             ##DEBUGGING##
-            #print(f"Tokens: {words}")
-            #print(f"Clean: {cleaned}")
-            #print(f"Emojis: {emojis}")
-            #print(f"Emoji Sentiment: {emojiSenti}")
+            print(f"Tokens: {words}")
+            print(f"Clean: {cleaned}")
+            print(f"Emojis: {emojis}")
+            print(f"Emoji Sentiment: {emojiSenti}")
             print(f"Caption Sentiment: {tokenSenti}")
             print(f"Colour: {colour}")
             print(f"Emotions: {face}")
@@ -73,10 +73,29 @@ def processing(row):
         ##DEBUGGING##
         print(f"Token Freq {tFreq}")
         print(f"NGrams Freq: {nFreq}")
-        sys.exit()
+    
+    ##DATAFRAME CREATION##
+    toAdd = pd.DataFrame({
+        'Tokens': tokenList,
+        'Token Sentiment Score': tSentList,
+        'Emojis': emojiList,
+        'Emoji Sentiment Score': eSentList,
+        'Image Colour Histogram': histogramList,
+        'Emotions Detected in Image': faceList,
+        'Objects Detected in Image': objList
+    })
+
+    return toAdd
+
 
 ##SAVING##
+def saveToExcel(toAdd):
+    with pd.ExcelWriter(filePath, engine='openpyxl', mode = 'a', if_sheet_exists='overlay') as writer:
+        writer.book = workbook
+        writer.sheets = {ws.title: ws for ws in workbook.worksheets}
+        toAdd.to_excel(writer, sheet_name = "Anxiety", index = False, header = False, startrow = writer.sheets['Anxiety'].max_row)
 
 ##RUNNING##
 if __name__ == "__main__":
-    processing(dataset)
+    newData = processing(dataset)
+    #saveToExcel(newData)
