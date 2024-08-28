@@ -1,4 +1,7 @@
+import cv2
+import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 
@@ -33,13 +36,25 @@ def visualise():
             if pd.notna(nFreqData):
                 nConvert = convertFreq(nFreqData)
                 nFreqGrps[sheet].extend(nConvert)
+            
+            #SENTIMENT#
+            tSentiData = row['Token Sentiment']
+            tSentiGrps[sheet].append(tSentiData)
 
+            eSentiData = row['Emoji Sentiment']
+            eSentiGrps[sheet].append(eSentiData)
+
+    '''
     #FREQUENCY#
     for group, tokens in tFreqGrps.items():
         plotWords(tokens, group, "Token Frequency")
     
     for group, ngrams in nFreqGrps.items():
         plotWords(ngrams, group, "N-Gram Frequency")
+    '''
+    #SENTIMENT#
+    plotSentiment(tSentiGrps, 'Token')
+    plotSentiment(eSentiGrps, 'Emoji')
 
 ##INDIVIDUAL PLOTTING##
 #FREQUENCY#
@@ -56,9 +71,23 @@ def plotWords(freq, group, colName):
     plt.title(f'{colName}: {group} Group Dominant Tokens')
     plt.show()
 
-##OTHER FUNCTIONS##
-#FREQUENCY CONVERSION#
-#Converting data to be usable for wordcloud
+#SENTIMENT#
+def plotSentiment(sentiments, title):
+    
+    sns.set_theme(style="whitegrid")
+    df = convertSenti(sentiments, title)
+    yAxis = f'{title} Sentiment Scores'
+
+    plt.figure(figsize=(8, 6))
+    sns.boxplot(x='group', y=yAxis, data = df)
+    plt.title(f'Distribution of {title} Sentiment Scores Across Groups')
+    plt.xlabel('Group')
+    plt.ylabel(yAxis)
+
+    plt.show()
+
+##CONVERSION##
+#FREQUENCY#
 def convertFreq(toConvert):
     converted = []
     for item in toConvert.split(','):
@@ -68,6 +97,16 @@ def convertFreq(toConvert):
         converted.append((token, freq))
     
     return converted
+
+#SENTIMENT#
+def convertSenti(toConvert, sheet):
+    converted = []
+    for group, scores in toConvert.items():
+        for score in scores:
+            converted.append({'group': group, f'{sheet} Sentiment Scores': score})
+
+    df = pd.DataFrame(converted)
+    return df
 
 ##RUNNING##
 if __name__ == "__main__":
