@@ -106,7 +106,7 @@ def emojiSentiment(emojis):
                     sentiment = 0  
                 total += sentiment
     else:
-        return "No emojis used"
+        return 0
 
     #Averaging     
     total = round(total/len(emojis), 4)
