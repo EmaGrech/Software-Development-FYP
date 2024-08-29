@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
+from sklearn.preprocessing import MinMaxScaler
 
 ##FETCHING##
 filePath = "C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx"
@@ -44,17 +45,24 @@ def visualise():
             eSentiData = row['Emoji Sentiment']
             eSentiGrps[sheet].append(eSentiData)
 
-    '''
+            #COLOUR#
+            colourData = row['Colour']
+            colourGrps[sheet].append(colourData)
+    
     #FREQUENCY#
     for group, tokens in tFreqGrps.items():
         plotWords(tokens, group, "Token Frequency")
     
     for group, ngrams in nFreqGrps.items():
         plotWords(ngrams, group, "N-Gram Frequency")
-    '''
+
     #SENTIMENT#
-    plotSentiment(tSentiGrps, 'Token')
-    plotSentiment(eSentiGrps, 'Emoji')
+    plotSentiment(tSentiGrps, 'Token', True)
+    plotSentiment(eSentiGrps, 'Emoji', False)
+
+    #COLOUR#
+    for group, hists in colourGrps.items():
+        plotColour(hists, group) 
 
 ##INDIVIDUAL PLOTTING##
 #FREQUENCY#
@@ -72,10 +80,10 @@ def plotWords(freq, group, colName):
     plt.show()
 
 #SENTIMENT#
-def plotSentiment(sentiments, title):
+def plotSentiment(sentiments, title, normal):
     
     sns.set_theme(style="whitegrid")
-    df = convertSenti(sentiments, title)
+    df = convertSenti(sentiments, title, normal)
     yAxis = f'{title} Sentiment Scores'
 
     plt.figure(figsize=(8, 6))
@@ -86,10 +94,34 @@ def plotSentiment(sentiments, title):
 
     plt.show()
 
+#COLOUR#
+def plotColour(colours, group):
+
+    hists = convertColour(colours)
+    colourAvg = np.mean(hists, axis=0)
+
+    colourAvg *= 255
+    colourAvg = colourAvg.astype('uint8')
+    img = np.zeros((50, 300, 3), dtype=np.uint8)
+    step = img.shape[1] // (len(colourAvg) // 3)
+    
+    for i in range(0, len(colourAvg), 3):
+        colour = colourAvg[i:i+3]
+
+        if len(colour) == 3:
+            img[:, (i//3)*step:((i//3)+1)*step] = colour
+    
+    plt.figure(figsize=(5, 2))
+    plt.axis('off')
+    plt.title(f'{group} Group Dominant Colours')
+    plt.imshow(img)
+    plt.show()
+
 ##CONVERSION##
 #FREQUENCY#
 def convertFreq(toConvert):
     converted = []
+
     for item in toConvert.split(','):
         token, freq = item.split(':')
         token = token.strip()
@@ -99,14 +131,34 @@ def convertFreq(toConvert):
     return converted
 
 #SENTIMENT#
-def convertSenti(toConvert, sheet):
+def convertSenti(toConvert, sheet, normal):
     converted = []
+
     for group, scores in toConvert.items():
         for score in scores:
             converted.append({'group': group, f'{sheet} Sentiment Scores': score})
 
     df = pd.DataFrame(converted)
+    
+    if normal == True:
+        scaler = MinMaxScaler()
+        df[[f'{sheet} Sentiment Scores']] = scaler.fit_transform(df[[f'{sheet} Sentiment Scores']])
+        
     return df
+
+#COLOUR#
+def convertColour(toConvert):
+    converted = []
+
+    for hist in toConvert:
+        if isinstance(hist, str):
+            cleaned = hist.replace('[', '').replace(']', '').strip()
+
+            values = list(map(float, cleaned.split()))
+            if values:
+                    converted.append(values)
+    
+    return np.array(converted)
 
 ##RUNNING##
 if __name__ == "__main__":
