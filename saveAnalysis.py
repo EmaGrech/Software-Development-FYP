@@ -112,7 +112,6 @@ def saveToExcel(toAdd, toAdd2, filePath, sheetName,dataset):
 
     #Saving data that does requires merging
     for name, group in dataset.groupby('Name'):
-        cells = len(group)
         for col in cols2:
             if col in existing:
                 colID = existing.index(col) + 1
@@ -121,7 +120,7 @@ def saveToExcel(toAdd, toAdd2, filePath, sheetName,dataset):
 
                 sheet[f'{letter}{firstRow}'] = data
 
-    #book.save(filePath)
+    book.save(filePath)
     
 
 ##RUNNING##
