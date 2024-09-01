@@ -116,11 +116,10 @@ def sequence(dataset):
     return padded, outputs
 
 ##RUNNING##
-if __name__ == '__main__':
+def main():
     toCombine = []
     textCol = ['Name', 'Emotions', 'Objects', 'Token Frequency', 'n-Gram Frequency']
     numCol = ['Token Sentiment', 'Emoji Sentiment', 'Colour']
-    include = textCol + numCol + ['Label']
 
     for sheet in sheets:
         toAdd = pd.read_excel(filePath, sheet_name = sheet, usecols = textCol + numCol)
@@ -145,3 +144,5 @@ if __name__ == '__main__':
     encoded = lEncoder.fit_transform(flat)
     encoded = encoded[:len(outputs)]
     encoded = np.array(encoded).reshape(len(outputs), -1) if len(outputs) > 0 else np.array([])
+
+    return inputs, encoded
