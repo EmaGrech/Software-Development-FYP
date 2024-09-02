@@ -1,3 +1,5 @@
+#Carrying out feature extraction
+
 import cv2
 import sys
 import numpy as np
@@ -71,10 +73,9 @@ def clean(tokens):
         words = newToken.replace("’", "'").replace("'", "").split() #There was an issue with apostrophes
         posTags = nltk.pos_tag(words)
         for word, pos in posTags:
-            #Remove numbers, stop words, and empty strings
-            if word and not any(char.isdigit() for char in word) and word.lower() not in stopWords:
-                #Remove punctuation
-                word = word.translate(str.maketrans('', '', string.punctuation))
+            #Remove non-alphabet, stop words, and empty strings
+            word = word.translate(str.maketrans('', '', string.punctuation + '・')).strip()
+            if word.isalpha() and word.lower() not in stopWords:                #Remove punctuation
                 #Converting to lowercase
                 word = word.lower()
                 #Making POS tags readable by lemmatiser
