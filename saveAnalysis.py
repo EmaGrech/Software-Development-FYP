@@ -22,11 +22,10 @@ def processing(dataset):
     faceList = []
     objList = []
 
-    #Used for frequency calculations
     allTokens = []
 
     for name, group in dataset.groupby('Name'):
-        allTokens = []
+        individualsTokens = []
 
         for index, row in group.iterrows():
             
@@ -41,7 +40,7 @@ def processing(dataset):
             emojiSenti = ay.emojiSentiment(emojis)
             tokenSenti = ay.tokenSentiment(cleaned)
 
-            allTokens.append(cleaned)
+            individualsTokens.extend(cleaned)
 
             ##IMAGES##
             colour = ay.colourExtraction(image)
@@ -57,12 +56,33 @@ def processing(dataset):
             objList.append(obj)
             faceList.append(face)
         
-        ##FREQUENCIES##
-        tFreq = ay.tokenFrequency(allTokens)
-        nFreq = ay.nGramFrequency(allTokens)
-        #Converting to String for cv
-        tFreqConvert = ', '.join([f'{k}: {v}' for k, v in tFreq.items()])
-        nFreqConvert = ', '.join([f'{k}: {v}' for k, v in nFreq.items()])
+        allTokens.append(individualsTokens)
+        
+    ##FREQUENCIES##
+    overallTokens = [token for person in allTokens for token in person]
+    topTokens = ay.tokenFrequency([overallTokens])  
+    topNGrams = ay.nGramFrequency([overallTokens])  
+    
+    topTokenSet = set(topTokens.keys())
+    topNGramSet = set(topNGrams.keys())
+
+    tFreqList = []
+    nFreqList = []
+
+    #Cross-checking everyone's top frequencies with eachother's tokens
+    for individualsTokens in allTokens:
+        tFreq = Counter(token for token in individualsTokens if token in topTokenSet)
+        tFreq = {token: count / len(individualsTokens) for token, count in tFreq.items()}
+
+        nGrams = [' '.join(individualsTokens[i:i+2]) for i in range(len(individualsTokens) - 2 + 1)]
+        nFreq = Counter(ngram for ngram in nGrams if ngram in topNGramSet)
+        
+        totalNGrams = len(nGrams)
+        nFreq = {ngram: count / totalNGrams for ngram, count in nFreq.items()}
+        
+        #Converting to string for cv
+        tFreqConvert = ', '.join([f'{k}: {v:.4f}' for k, v in tFreq.items()])
+        nFreqConvert = ', '.join([f'{k}: {v:.4f}' for k, v in nFreq.items()])
 
         tFreqList.append(tFreqConvert)
         nFreqList.append(nFreqConvert)
@@ -88,7 +108,7 @@ def processing(dataset):
 
 
 ##SAVING##
-def saveToExcel(toAdd, toAdd2, filePath, sheetName,dataset):
+def saveToExcel(toAdd, toAdd2, filePath, sheetName, dataset):
     #Saving data that does not require merging
     with pd.ExcelWriter(filePath, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
         sheet = writer.sheets[sheetName]
@@ -120,7 +140,9 @@ def saveToExcel(toAdd, toAdd2, filePath, sheetName,dataset):
                 letter = chr(ord('A') + colID - 1)
                 data = toAdd2[toAdd2['Name'] == name][col].values[0]
 
-                sheet[f'{letter}{firstRow}'] = data
+                curr = firstRow + list(dataset['Name']).index(name)
+                
+                sheet[f'{letter}{curr}'] = data
 
     book.save(filePath)
     
