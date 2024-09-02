@@ -138,7 +138,8 @@ def main(filePath):
 
     #Sending for encoding and normalisation
     dataset = encode(dataset, textCol)
-    dataset = normalise(dataset, numCol)
+    freqCols = [col for col in dataset.columns if col.startswith('Token Frequency_') or col.startswith('n-Gram Frequency_')]
+    dataset = normalise(dataset, numCol + freqCols)
     
     #Assigning the inputs and outputs in sequences
     inputs, outputs = sequence(dataset)
