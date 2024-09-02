@@ -2,9 +2,10 @@ from tensorflow.keras.models import Model
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.layers import Input, Dense, LSTM
 
-import process as ps
+import preparing as ps
 
-inputs, outputs = ps.main()
+filePath = 'C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx'
+inputs, outputs = ps.main(filePath)
 
 ##SPLITTING##
 xTrain, xTest, yTrain, yTest = train_test_split(inputs, outputs, test_size=0.2, random_state=42)
@@ -24,7 +25,7 @@ model.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metr
 model.fit(xTrain, yTrain, epochs = 10, batch_size = 32, validation_split = 0.2)
 
 ##SAVING MODEL##
-model.save('Trained Model')
+model.save('Trained Model.h5')
 
 ##EVALUATING##
 loss, accuracy = model.evaluate(xTest, yTest)
