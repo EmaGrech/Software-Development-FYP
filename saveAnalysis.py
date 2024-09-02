@@ -126,7 +126,8 @@ def saveToExcel(toAdd, toAdd2, filePath, sheetName,dataset):
     
 
 ##RUNNING##
-def main(filePath = 'C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx'):
+if __name__ == "__main__":
+    filePath = 'C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx'
     xls = pd.ExcelFile(filePath)
     sheetNames = xls.sheet_names
 
