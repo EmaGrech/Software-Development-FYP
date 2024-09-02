@@ -8,7 +8,7 @@ import string, emoji, nltk
 from nltk.tokenize import TweetTokenizer
 from nltk.corpus import stopwords
 from nltk.corpus import sentiwordnet as swn
-from nltk.stem import PorterStemmer
+from nltk.stem import WordNetLemmatizer
 from collections import Counter
 from keras.models import load_model
 from torchvision.transforms import functional as F
@@ -44,7 +44,7 @@ def clean(tokens):
     cleaned = []
     emojis = []
     stopWords = set(stopwords.words('english'))
-    stemmer = PorterStemmer()
+    lemmatizer = WordNetLemmatizer()
     
     emojiChars = set(emoji.EMOJI_DATA)
     
@@ -69,15 +69,19 @@ def clean(tokens):
         
         #Processing tokens
         words = newToken.replace("’", "'").replace("'", "").split() #There was an issue with apostrophes
-        for word in words:
+        posTags = nltk.pos_tag(words)
+        for word, pos in posTags:
             #Remove numbers, stop words, and empty strings
             if word and not any(char.isdigit() for char in word) and word.lower() not in stopWords:
                 #Remove punctuation
                 word = word.translate(str.maketrans('', '', string.punctuation))
                 #Converting to lowercase
                 word = word.lower()
-                #Applying stemming
-                word = stemmer.stem(word)
+                #Making POS tags readable by lemmatiser
+                pos = pos[0].lower()  
+                pos = pos if pos in ['a', 'r', 'n', 'v'] else 'n'  
+                #Applying lemmatisation
+                word = lemmatizer.lemmatize(word, pos)
 
                 if word and word not in emojiChars: 
                     cleaned.append(word)
