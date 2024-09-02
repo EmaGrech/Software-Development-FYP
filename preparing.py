@@ -1,3 +1,5 @@
+#Preparing the Analysed data from excel to be readable as input for the neural network
+
 import ast
 import numpy as np
 import pandas as pd
