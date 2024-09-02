@@ -152,8 +152,8 @@ def tokenFrequency(allTokens):
     #Calculating frequency
     freq = {token: count / len(allTokens) for token, count in count.items()}
     
-    #Picking top 5
-    top = dict(sorted(freq.items(), key=lambda item: item[1],reverse=True)[:5])
+    #Picking top 10
+    top = dict(sorted(freq.items(), key=lambda item: item[1],reverse=True)[:10])
 
     return top
 
