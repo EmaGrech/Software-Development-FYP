@@ -1,6 +1,5 @@
 #Generator for visual representation of the data
 
-import cv2
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -41,14 +40,14 @@ def visualise():
                 nFreqGrps[sheet].extend(nConvert)
             
             #SENTIMENT#
-            tSentiData = row['Token Sentiment']
+            tSentiData = row['Token Sentiment Score']
             tSentiGrps[sheet].append(tSentiData)
 
-            eSentiData = row['Emoji Sentiment']
+            eSentiData = row['Emoji Sentiment Score']
             eSentiGrps[sheet].append(eSentiData)
 
             #COLOUR#
-            colourData = row['Colour']
+            colourData = row['Image Colour Histogram']
             colourGrps[sheet].append(colourData)
     
     #FREQUENCY#
@@ -56,7 +55,7 @@ def visualise():
         plotWords(tokens, group, "Token Frequency")
     
     for group, ngrams in nFreqGrps.items():
-        plotWords(ngrams, group, "N-Gram Frequency")
+        plotWords(ngrams, group, "n-Gram Frequency")
 
     #SENTIMENT#
     plotSentiment(tSentiGrps, 'Token', True)
@@ -104,19 +103,19 @@ def plotColour(colours, group):
 
     colourAvg *= 255
     colourAvg = colourAvg.astype('uint8')
-    img = np.zeros((50, 300, 3), dtype=np.uint8)
-    step = img.shape[1] // (len(colourAvg) // 3)
-    
-    for i in range(0, len(colourAvg), 3):
-        colour = colourAvg[i:i+3]
 
-        if len(colour) == 3:
-            img[:, (i//3)*step:((i//3)+1)*step] = colour
-    
-    plt.figure(figsize=(5, 2))
-    plt.axis('off')
+    plt.figure(figsize=(10, 4))
+    channels = ['Red', 'Green', 'Blue']
+    colors = ['r', 'g', 'b']
+
+    for i, channel in enumerate(channels):
+        plt.plot(colourAvg[i::3], color=colors[i], label=f'{channel} Channel')
+
+    plt.xlabel('Color Bin Index')
+    plt.ylabel('Normalized Frequency')
     plt.title(f'{group} Group Dominant Colours')
-    plt.imshow(img)
+    plt.legend()
+    plt.grid(True)
     plt.show()
 
 ##CONVERSION##
@@ -151,16 +150,24 @@ def convertSenti(toConvert, sheet, normal):
 #COLOUR#
 def convertColour(toConvert):
     converted = []
-
+    
     for hist in toConvert:
         if isinstance(hist, str):
             cleaned = hist.replace('[', '').replace(']', '').strip()
-
+            
+            # Debug: Print the cleaned string
+            
             values = list(map(float, cleaned.split()))
             if values:
-                    converted.append(values)
+                converted.append(values)
     
-    return np.array(converted)
+    # Convert to numpy array and print shape and sample values
+    converted_array = np.array(converted)
+    print(f"Converted Array Shape: {converted_array.shape}")
+    print(f"Sample Converted Array: {converted_array[:1]}")
+    
+    return converted_array
+
 
 ##RUNNING##
 if __name__ == "__main__":
