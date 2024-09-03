@@ -28,10 +28,11 @@ def parse(toParse, col):
             elif ':' in x:
                 try:
                     pairs = x.split(', ')
-                    if ' ' in pairs[0]:
-                        result = [(token.strip(), float(freq.strip())) for token, freq in (pair.split(':') for pair in pairs)]
-                    else:
-                        result = [(ngram.strip(), float(freq.strip())) for ngram, freq in (pair.split(':') for pair in pairs)]
+                    result = {}
+                    for pair in pairs:
+                        if ':' in pair:
+                            key, value = pair.split(':', 1)
+                            result[key.strip()] = float(value.strip())
                     return result
                 except (ValueError, TypeError):
                     return [x]
@@ -52,7 +53,7 @@ def parse(toParse, col):
 ##ENCODING##
 def encode(toEncode, textCols):
     for col in textCols:
-        if col in ['Emotions', 'Objects']:
+        if col in ['Emotions Detected in Image', 'Objects Detected in Image']:
             #Creating new individual columns for all emotions and objects
             expanded = toEncode[col].explode().reset_index(drop=True)
             #Encoding
@@ -62,7 +63,7 @@ def encode(toEncode, textCols):
             #Creating new individual columns for all emotions and objects
             freqDataset = []
             for i, row in toEncode.iterrows():
-                freqDict = dict(row[col])
+                freqDict = row[col] if isinstance(row[col], dict) else {}
                 freqData = pd.Series(freqDict, name=i).to_frame().T
                 freqDataset.append(freqData)
             #Encoding
@@ -96,19 +97,19 @@ def sequence(dataset):
     inputs = []
     outputs = []
     
+    cols = [col for col in dataset.columns if col not in ['Name', 'Label']]
+
     grouped = dataset.groupby('Name')
 
     for name, group in grouped:
-        columns = [col for col in group.columns if col not in ['Name', 'Label']]
-        seq = group[columns].values.tolist()
+        seq = group[cols].values.tolist()
         labels = group['Label'].values.tolist()
 
-        inputs.append(seq)
+        inputs.append(np.array(seq, dtype='float32'))
         outputs.append(labels)
     
     #Converting into numpy arrays
     inputs = np.array(inputs, dtype=object)
-    outputs = np.array(outputs, dtype=object)
 
     #Padding
     length = max(len(seq) for seq in inputs)
@@ -117,13 +118,13 @@ def sequence(dataset):
     return padded, outputs
 
 ##RUNNING##
-def main(filePath):
+def main(filePath = 'C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx'):
     xls = pd.ExcelFile(filePath)
     sheets = xls.sheet_names
 
     toCombine = []
-    textCol = ['Name', 'Emotions', 'Objects', 'Token Frequency', 'n-Gram Frequency']
-    numCol = ['Token Sentiment', 'Emoji Sentiment', 'Colour']
+    textCol = ['Name', 'Emotions Detected in Image', 'Objects Detected in Image', 'Token Frequency', 'n-Gram Frequency']
+    numCol = ['Token Sentiment Score', 'Emoji Sentiment Score', 'Image Colour Histogram']
 
     for sheet in sheets:
         toAdd = pd.read_excel(filePath, sheet_name = sheet, usecols = textCol + numCol)
@@ -149,5 +150,3 @@ def main(filePath):
     encoded = lEncoder.fit_transform(flat)
     encoded = encoded[:len(outputs)]
     encoded = np.array(encoded).reshape(len(outputs), -1) if len(outputs) > 0 else np.array([])
-
-    return inputs, encoded
