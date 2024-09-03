@@ -7,8 +7,6 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 ##INITIALISINIG##
-filePath = "C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics 2.xlsx"
-
 scaler = StandardScaler()
 lEncoder = LabelEncoder()
 
@@ -98,27 +96,27 @@ def sequence(dataset):
     outputs = []
     
     cols = [col for col in dataset.columns if col not in ['Name', 'Label']]
-
     grouped = dataset.groupby('Name')
-
+    
     for name, group in grouped:
         seq = group[cols].values.tolist()
-        labels = group['Label'].values.tolist()
+        label = group['Label'].iloc[0]  
 
         inputs.append(np.array(seq, dtype='float32'))
-        outputs.append(labels)
+        outputs.append(label)  
     
-    #Converting into numpy arrays
+    # Converting into numpy arrays
     inputs = np.array(inputs, dtype=object)
-
-    #Padding
-    length = max(len(seq) for seq in inputs)
-    padded = pad_sequences(inputs, maxlen = length, dtype = 'float32', padding = 'post')
+    outputs = np.array(outputs)
     
-    return padded, outputs
+    # Padding sequences
+    length = max(len(seq) for seq in inputs)
+    padded_inputs = pad_sequences(inputs, maxlen=length, dtype='float32', padding='post')
+    
+    return padded_inputs, outputs
 
 ##RUNNING##
-def main(filePath = 'C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx'):
+def main(filePath):
     xls = pd.ExcelFile(filePath)
     sheets = xls.sheet_names
 
@@ -127,7 +125,7 @@ def main(filePath = 'C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xls
     numCol = ['Token Sentiment Score', 'Emoji Sentiment Score', 'Image Colour Histogram']
 
     for sheet in sheets:
-        toAdd = pd.read_excel(filePath, sheet_name = sheet, usecols = textCol + numCol)
+        toAdd = pd.read_excel(filePath, sheet_name=sheet, usecols=textCol + numCol)
         toAdd['Label'] = sheet
 
         for col in textCol:
@@ -135,18 +133,24 @@ def main(filePath = 'C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xls
 
         toCombine.append(toAdd)
     
-    dataset = pd.concat(toCombine, ignore_index = True)
+    dataset = pd.concat(toCombine, ignore_index=True)
 
-    #Sending for encoding and normalisation
+    # Encoding text columns
     dataset = encode(dataset, textCol)
     freqCols = [col for col in dataset.columns if col.startswith('Token Frequency_') or col.startswith('n-Gram Frequency_')]
     dataset = normalise(dataset, numCol + freqCols)
-    
-    #Assigning the inputs and outputs in sequences
+
+    # Preparing inputs and outputs
     inputs, outputs = sequence(dataset)
 
-    #Encoding outputs
-    flat = [item for sublist in outputs for item in sublist]
-    encoded = lEncoder.fit_transform(flat)
-    encoded = encoded[:len(outputs)]
-    encoded = np.array(encoded).reshape(len(outputs), -1) if len(outputs) > 0 else np.array([])
+    # Encoding outputs
+    lEncoder.fit(outputs)
+    encoded_labels = lEncoder.transform(outputs)
+    encoded_labels = encoded_labels.reshape(-1, 1)  
+    
+    return inputs, encoded_labels
+
+if __name__ == "__main__":
+    inputs, encoded_labels = main(filePath='C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx')
+    print(f"Inputs shape: {inputs.shape}")
+    print(f"Encoded labels shape: {encoded_labels.shape}")
