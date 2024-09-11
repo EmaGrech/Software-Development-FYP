@@ -1,11 +1,10 @@
-from sklearn.model_selection import train_test_split
+import time
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from sklearn.model_selection import train_test_split, KFold
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM
-from tensorflow.keras.utils import to_categorical
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.metrics import classification_report
 import numpy as np
 import preparing as pr
 
@@ -19,58 +18,139 @@ if len(outputs.shape) == 2 and outputs.shape[1] > 1:
 else:
     y = outputs
 
-# SPLITTING DATASET##
-xTrain, xTest, yTrain, yTest = train_test_split(inputs, y, test_size=0.2, random_state=42)
+##EVALUATING##
+def eval(pred, yTest):
+    acc = accuracy_score(yTest, pred)
+    prec = precision_score(yTest, pred, average='weighted')
+    recall = recall_score(yTest, pred, average='weighted')
+    f1 = f1_score(yTest, pred, average='weighted')
+    report = classification_report(yTest, pred)
+    return acc, prec, recall, f1, report
 
-##LONG SHORT-TERM MEMORY##
-def LSTMModel():
-    #MODEL#
+##OUTPUTTING##
+def outputResults(results, model_name):
+    print(f"\n{model_name} Results:")
+    for i, (acc, prec, recall, f1, training, pred, report) in enumerate(results):
+        print(f"\nFold {i+1}:")
+        print(f'Accuracy: {acc}')
+        print(f'Precision: {prec}')
+        print(f'Recall: {recall}')
+        print(f'F1-Score: {f1}')
+        print(f'Training Time: {training} seconds')
+        print(f'Prediction Time: {pred} seconds')
+        print(f'Classification Report:\n{report}')
+
+##LSTM##
+def LSTMModel(xTrain, yTrain, xTest, yTest):
+    #Building the model
     model = Sequential()
     model.add(LSTM(64, input_shape=(xTrain.shape[1], xTrain.shape[2]), return_sequences=True))
     model.add(LSTM(32))
     model.add(Dense(16, activation='relu'))
-    model.add(Dense(len(np.unique(y)), activation='softmax'))  # Output layer size
+    model.add(Dense(len(np.unique(y)), activation='softmax')) 
 
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+    #Training the model
+    start = time.time()
     model.fit(xTrain, yTrain, epochs=10, batch_size=32, validation_split=0.2)
+    training = time.time() - start
 
-    #EVALUATING#
-    loss, accuracy = model.evaluate(xTest, yTest)
-    print(f'LSTM Accuracy: {accuracy}')
+    # Evaluating the model
+    start = time.time()
+    loss, acc = model.evaluate(xTest, yTest)
+    pred = time.time() - start
 
-##RANDOM FOREST##
-def RF():
-    #MODEL#
+    pred = np.argmax(model.predict(xTest), axis=-1)
+
+    acc, prec, recall, f1, report = eval(pred, yTest)
+    return acc, prec, recall, f1, training, pred, report
+
+##Random Forest##
+def RF(xTrain, yTrain, xTest, yTest):
+    #Building the model
     model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+    #Training the model
+    start = time.time()
     model.fit(xTrain.reshape(xTrain.shape[0], -1), yTrain)
+    training = time.time() - start
 
-    #EVALUATING#
+    #Evaluating the model
+    start = time.time()
     pred = model.predict(xTest.reshape(xTest.shape[0], -1))
-    print(f'Random Forest Classification Report:\n{classification_report(yTest, pred)}')
+    pred = time.time() - start
 
-##SUPPORT VECTOR MACHINE##
-def SVM():
-    #MODEL#
+    acc, prec, recall, f1, report = eval(pred, yTest)
+    return acc, prec, recall, f1, training, pred, report
+
+##Support Vector Machine ##
+def SVM(xTrain, yTrain, xTest, yTest):
+    #Building the model
     model = SVC()
+
+    #Training the model
+    start = time.time()
     model.fit(xTrain.reshape(xTrain.shape[0], -1), yTrain)
+    training = time.time() - start
 
-    #EVALUATING#
+    #Evaluating the model
+    start = time.time()
     pred = model.predict(xTest.reshape(xTest.shape[0], -1))
-    print(f'Support Vector Machine Classification Report:\n{classification_report(yTest, pred)}')
+    pred = time.time() - start
 
-##GRADIENT BOOSTING MACHINE##
-def GBM():
-    #MODEL#
+    acc, prec, recall, f1, report = eval(pred, yTest)
+    return acc, prec, recall, f1, training, pred, report
+
+##Gradient Boosting Machine##
+def GBM(xTrain, yTrain, xTest, yTest):
+    #Building the model
     model = GradientBoostingClassifier()
-    model.fit(xTrain.reshape(xTrain.shape[0], -1), yTrain)
 
-    #EVALUATING#
+    #Training the model
+    start = time.time()
+    model.fit(xTrain.reshape(xTrain.shape[0], -1), yTrain)
+    training = time.time() - start
+
+    #Evaluating the model
+    start = time.time()
     pred = model.predict(xTest.reshape(xTest.shape[0], -1))
-    print(f'Gradient Boosting Machine Classification Report:\n{classification_report(yTest, pred)}')
+    pred = time.time() - start
+
+    acc, prec, recall, f1, report = eval(pred, yTest)
+    return acc, prec, recall, f1, training, pred, report
 
 ##RUNNING##
 if __name__ == "__main__":
-    LSTMModel()
-    RF()
-    SVM()
-    GBM()
+    #Assining number of folds
+    splits = 5
+    kf = KFold(n_splits=splits, shuffle=True, random_state=42)
+    
+    lstmResults = []
+    rfResults = []
+    svmResults = []
+    gbmResults = []
+
+    for train_index, test_index in kf.split(inputs):
+        #Splitting the dataset
+        xTrain, xTest = inputs[train_index], inputs[test_index]
+        yTrain, yTest = y[train_index], y[test_index]
+        yTrain = yTrain.flatten()
+        yTest = yTest.flatten()
+
+        print("Evaluating LSTM Model")
+        lstmResults.append(LSTMModel(xTrain, yTrain, xTest, yTest))
+
+        print("\nEvaluating Random Forest Model")
+        rfResults.append(RF(xTrain, yTrain, xTest, yTest))
+
+        print("\nEvaluating SVM Model")
+        svmResults.append(SVM(xTrain, yTrain, xTest, yTest))
+
+        print("\nEvaluating GBM Model")
+        gbmResults.append(GBM(xTrain, yTrain, xTest, yTest))
+
+    outputResults(lstmResults, "LSTM")
+    outputResults(rfResults, "Random Forest")
+    outputResults(svmResults, "SVM")
+    outputResults(gbmResults, "GBM")
