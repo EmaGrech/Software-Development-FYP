@@ -9,7 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 ##FETCHING##
 filePath = "C:/Users/emagr/Documents/School/Y3S2/FYP/FYP Statistics.xlsx"
-sheets = ['Anxiety', 'Depression', 'Both']
+sheets = ['Anxiety', 'Depression', 'Both', 'Neither']
 
 ##VISUALISATION##
 def visualise():
