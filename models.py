@@ -30,14 +30,14 @@ def eval(pred, yTest):
 ##OUTPUTTING##
 def outputResults(results, model_name):
     print(f"\n{model_name} Results:")
-    for i, (acc, prec, recall, f1, training, pred, report) in enumerate(results):
+    for i, (acc, prec, recall, f1, trainTime, predTime, report) in enumerate(results):
         print(f"\nFold {i+1}:")
         print(f'Accuracy: {acc}')
         print(f'Precision: {prec}')
         print(f'Recall: {recall}')
         print(f'F1-Score: {f1}')
-        print(f'Training Time: {training} seconds')
-        print(f'Prediction Time: {pred} seconds')
+        print(f'trainTime Time: {trainTime} seconds')
+        print(f'Prediction Time: {predTime} seconds')
         print(f'Classification Report:\n{report}')
 
 ##LSTM##
@@ -51,74 +51,74 @@ def LSTMModel(xTrain, yTrain, xTest, yTest):
 
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    #Training the model
+    #trainTime the model
     start = time.time()
     model.fit(xTrain, yTrain, epochs=10, batch_size=32, validation_split=0.2)
-    training = time.time() - start
+    trainTime = time.time() - start
 
     # Evaluating the model
     start = time.time()
     loss, acc = model.evaluate(xTest, yTest)
-    pred = time.time() - start
+    predTime = time.time() - start
 
     pred = np.argmax(model.predict(xTest), axis=-1)
 
     acc, prec, recall, f1, report = eval(pred, yTest)
-    return acc, prec, recall, f1, training, pred, report
+    return acc, prec, recall, f1, trainTime, predTime, report
 
 ##Random Forest##
 def RF(xTrain, yTrain, xTest, yTest):
     #Building the model
     model = RandomForestClassifier(n_estimators=100, random_state=42)
 
-    #Training the model
+    #trainTime the model
     start = time.time()
     model.fit(xTrain.reshape(xTrain.shape[0], -1), yTrain)
-    training = time.time() - start
+    trainTime = time.time() - start
 
     #Evaluating the model
     start = time.time()
     pred = model.predict(xTest.reshape(xTest.shape[0], -1))
-    pred = time.time() - start
+    predTime = time.time() - start
 
     acc, prec, recall, f1, report = eval(pred, yTest)
-    return acc, prec, recall, f1, training, pred, report
+    return acc, prec, recall, f1, trainTime, predTime, report
 
 ##Support Vector Machine ##
 def SVM(xTrain, yTrain, xTest, yTest):
     #Building the model
     model = SVC()
 
-    #Training the model
+    #trainTime the model
     start = time.time()
     model.fit(xTrain.reshape(xTrain.shape[0], -1), yTrain)
-    training = time.time() - start
+    trainTime = time.time() - start
 
     #Evaluating the model
     start = time.time()
     pred = model.predict(xTest.reshape(xTest.shape[0], -1))
-    pred = time.time() - start
+    predTime = time.time() - start
 
     acc, prec, recall, f1, report = eval(pred, yTest)
-    return acc, prec, recall, f1, training, pred, report
+    return acc, prec, recall, f1, trainTime, predTime, report
 
 ##Gradient Boosting Machine##
 def GBM(xTrain, yTrain, xTest, yTest):
     #Building the model
     model = GradientBoostingClassifier()
 
-    #Training the model
+    #trainTime the model
     start = time.time()
     model.fit(xTrain.reshape(xTrain.shape[0], -1), yTrain)
-    training = time.time() - start
+    trainTime = time.time() - start
 
     #Evaluating the model
     start = time.time()
     pred = model.predict(xTest.reshape(xTest.shape[0], -1))
-    pred = time.time() - start
+    predTime = time.time() - start
 
     acc, prec, recall, f1, report = eval(pred, yTest)
-    return acc, prec, recall, f1, training, pred, report
+    return acc, prec, recall, f1, trainTime, predTime, report
 
 ##RUNNING##
 if __name__ == "__main__":
